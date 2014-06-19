@@ -138,6 +138,10 @@ tweetSource.addEventListener('tweet', function (event) {
         return;
     }
 
+    if (data === undefined) {
+        return;
+    }
+
     var tweet = data.tweet;
     var sentiment = data.sentiment;
 

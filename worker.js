@@ -4,6 +4,7 @@ var Twitter = require('twit');
 var sentiment = require('sentiment');
 var browserify = require('browserify');
 var config = require('./config');
+var nudge = require('nudge');
 
 var app = express();
 
@@ -20,19 +21,22 @@ var twitter = new Twitter({
 // Example twitter stream listening for tweets about JavaScript.
 var stream = twitter.stream('statuses/filter', { track: 'javascript' });
 
-// Emitter will re-emit analyzed tweets.
-var analyzed = new EventEmitter();
-
 // Listen for tweets and emit filtered and analyzed tweets.
-stream.on('tweet', function (tweet) {
-    if (tweet.text.indexOf('Please turn on JavaScript') !== -1) {
-        return;
-    }
+var streamMiddleware = nudge(stream, {
+    tweet: {
+        preProcessor: function (args, successCallback) {
+            var tweet = args[0];
 
-    analyzed.emit('tweet', {
-        sentiment: sentiment(tweet.text),
-        tweet: tweet
-    });
+            if (tweet.text.indexOf('Please turn on JavaScript') !== -1) {
+                return;
+            }
+
+            successCallback({
+                sentiment: sentiment(tweet.text),
+                tweet: tweet
+            });
+        }
+    }
 });
 
 // Twitter sometimes throws a wobbly. Safe to simply log and ignore the errors.
@@ -41,36 +45,6 @@ stream.on('error', function (err) {
 
     console.error(err.message);
 });
-
-// Custom middleware creator to hold open a connection for Server Sent Events. Listens on stream for
-// events with a given eventName.
-function handleSse(stream, eventName) {
-    'use strict';
-
-    return function (req, res) {
-        // Necessary headers for SSE.
-        res.status(200).set({
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
-
-        // SSE required newline.
-        res.write('\n');
-
-        // Send events to the client.
-        function eventSender(data) {
-            res.write('event: ' + eventName + '\n');
-            res.write('data: ' + JSON.stringify(data) + '\n\n');
-        }
-
-        stream.on(eventName, eventSender);
-
-        req.once('close', function () {
-            stream.removeListener(eventName, eventSender);
-        });
-    };
-}
 
 // Make a browserify bundle at boot time. Fine for small codebases.
 function makeBundle(callback) {
@@ -92,7 +66,7 @@ makeBundle(function (err, bundle) {
     });
 
     // A server sent events route. Streams tweets to the client.
-    app.get('/tweetSource', handleSse(analyzed, 'tweet'));
+    app.get('/tweetSource', streamMiddleware);
 
     // Serve the static site bits.
     app.use(express.static(__dirname + '/web'));
