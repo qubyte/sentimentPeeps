@@ -10,15 +10,15 @@
   "license": "ISC",
   "dependencies": {
     "Sentimental": "1.0.1",
-    "browserify": "4.1.5",
-    "express": "4.1.2",
-    "minimist": "0.1.0",
-    "nudge": "0.1.2",
-    "sentiment": "1.0.0-alpha",
-    "twit": "1.1.15"
+    "browserify": "14.4.0",
+    "express": "4.15.4",
+    "minimist": "1.2.0",
+    "nudge": "0.3.0",
+    "sentiment": "4.0.1",
+    "twit": "2.2.9"
   },
   "devDependencies": {
-    "jshint": "2.5.1"
+    "jshint": "2.9.5"
   },
   "jshintConfig": {
     "predef": [
