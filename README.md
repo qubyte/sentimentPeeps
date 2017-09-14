@@ -1,5 +1,7 @@
 # Sentiment Peeps
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/qubyte/sentimentPeeps.svg)](https://greenkeeper.io/)
+
 This repo contains a small demo of Server Sent Events. These turned out to be trivial to implement,
 and may prove more robust over a complex or locked down network than WebSockets.
 
