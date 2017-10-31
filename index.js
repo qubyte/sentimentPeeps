@@ -1,52 +1,54 @@
-var config = require('./config');
-var cluster = require('cluster');
+'use strict';
 
-cluster.setupMaster({ exec : 'worker.js' });
+const config = require('./config');
+const cluster = require('cluster');
+
+cluster.setupMaster({ exec: 'worker.js' });
 
 function forker(callback) {
-    var worker = cluster.fork();
-    var id = worker.id;
-    var pid = worker.process.pid;
+  const worker = cluster.fork();
+  const id = worker.id;
+  const pid = worker.process.pid;
 
-    worker.once('listening', function () {
-        console.log('Spawned worker:', id + ',', 'pid:', pid);
+  worker.once('listening', () => {
+    console.log(`Spawned worker: ${id}, pid: ${pid}.`); // eslint-disable-line no-console
 
-        if (callback) {
-            callback();
-        }
-    });
+    if (callback) {
+      callback();
+    }
+  });
 }
 
 function handleExit(worker) {
-    var id = worker.id;
-    var pid = worker.process.pid;
+  const id = worker.id;
+  const pid = worker.process.pid;
 
-    console.error('Worker:', id + ',', 'pid', pid, 'died');
+  console.error(`Worker: ${id}, pid: ${pid} died.`); // eslint-disable-line no-console
 
-    forker();
+  forker();
 }
 
 cluster.on('exit', handleExit);
 
 function spawner(num, callback) {
-    var total = 0;
+  let total = 0;
 
-    function cb() {
-        total += 1;
+  function cb() {
+    total += 1;
 
-        if (total === num) {
-            callback();
-        }
+    if (total === num) {
+      callback();
     }
+  }
 
-    for (var i = 0; i < num; i++) {
-        forker(cb);
-    }
+  for (let i = 0; i < num; i++) {
+    forker(cb);
+  }
 }
 
-console.log('Spawning', config.workers, 'workers.');
+console.log('Spawning', config.workers, 'workers.'); // eslint-disable-line no-console
 
-spawner(config.workers, function () {
-    console.log('Workers listening on port', config.port);
-    console.log('Master pid:', process.pid);
+spawner(config.workers, () => {
+  console.log('Workers listening on port', config.port); // eslint-disable-line no-console
+  console.log('Master pid:', process.pid); // eslint-disable-line no-console
 });

@@ -1,75 +1,42 @@
-var EventEmitter = require('events').EventEmitter;
-var express = require('express');
-var Twitter = require('twit');
-var sentiment = require('sentiment');
-var browserify = require('browserify');
-var config = require('./config');
-var nudge = require('nudge');
+'use strict';
 
-var app = express();
+const path = require('path');
+const express = require('express');
+const Twitter = require('twit');
+const sentiment = require('sentiment');
+const config = require('./config');
+const nudge = require('nudge');
+
+const app = express();
 
 // Credentials are fed via the config module.
-var twitter = new Twitter({
-    /* jsjint ignore: start */
-    consumer_key: config['twitter-consumer-key'],
-    consumer_secret: config['twitter-consumer-secret'],
-    access_token: config['twitter-access-token'],
-    access_token_secret: config['twitter-access-token-secret']
-    /* jshint ignore: end */
+const twitter = new Twitter({
+  consumer_key: config['twitter-consumer-key'],
+  consumer_secret: config['twitter-consumer-secret'],
+  access_token: config['twitter-access-token'],
+  access_token_secret: config['twitter-access-token-secret']
 });
 
 // Example twitter stream listening for tweets about JavaScript.
-var stream = twitter.stream('statuses/filter', { track: 'javascript' });
-
-// Listen for tweets and emit filtered and analyzed tweets.
-var streamMiddleware = nudge(stream, {
-    tweet: {
-        preProcessor: function (args, successCallback) {
-            var tweet = args[0];
-
-            if (tweet.text.indexOf('Please turn on JavaScript') !== -1) {
-                return;
-            }
-
-            successCallback({
-                sentiment: sentiment(tweet.text),
-                tweet: tweet
-            });
-        }
-    }
-});
+const stream = twitter.stream('statuses/filter', { track: 'javascript' });
 
 // Twitter sometimes throws a wobbly. Safe to simply log and ignore the errors.
-stream.on('error', function (err) {
-    'use strict';
+stream.on('error', err => console.error(err.message)); // eslint-disable-line no-console
 
-    console.error(err.message);
-});
+// A server sent events route. Streams tweets to the client.
+app.get('/tweetSource', nudge(stream, {
+  tweet: {
+    preProcessor([tweet], successCallback) {
+      if (tweet.text.indexOf('Please turn on JavaScript') !== -1) {
+        return;
+      }
 
-// Make a browserify bundle at boot time. Fine for small codebases.
-function makeBundle(callback) {
-    var b = browserify();
-    b.add('./frontend/peeps.js');
-    b.bundle({ standalone: 'bundle.js' }, callback);
-}
-
-// Bundle the front end code, then configure the express server and tell it to listen.
-makeBundle(function (err, bundle) {
-    if (err) {
-        console.error(err.stack || err.message);
-        process.exit(1);
+      successCallback({ sentiment: sentiment(tweet.text), tweet });
     }
+  }
+}));
 
-    app.get('/bundle.js', function (req, res) {
-        res.set('content-type', 'text/javascript');
-        res.send(bundle);
-    });
+// Serve the static site bits.
+app.use(express.static(path.join(__dirname, 'public')));
 
-    // A server sent events route. Streams tweets to the client.
-    app.get('/tweetSource', streamMiddleware);
-
-    // Serve the static site bits.
-    app.use(express.static(__dirname + '/web'));
-
-    app.listen(config.port);
-});
+app.listen(config.port);
