@@ -1,3 +1,5 @@
+This repository is not maintained and the code and API calls to twitter outdated.
+
 # Sentiment Peeps
 
 This repo contains a small demo of Server Sent Events. These turned out to be trivial to implement,
