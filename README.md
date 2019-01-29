@@ -1,4 +1,4 @@
-This repository is not maintained and the code and API calls to twitter outdated.
+:warning: **This repository is not maintained and the code and API calls to twitter outdated.** :warning:
 
 # Sentiment Peeps
 
